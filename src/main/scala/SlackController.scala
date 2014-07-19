@@ -12,12 +12,12 @@ import play.api.data.Forms._
 
 import io.yard.api.slack.models._
 import io.yard.module.core.Api
-import io.yard.utils._
-import io.yard.models.ModuleController
+import io.yard.common.utils._
+import io.yard.common.models.ModuleController
 
 object SlackController extends ModuleController with Answer with Log {
 
-  lazy val logger = initLogger("yardio.modules.core.controllers.core")
+  lazy val logger = initLogger("yardio.provider.slack.SlackController")
 
   def hasRoute(rh: RequestHeader) = true
 
@@ -61,7 +61,9 @@ object SlackController extends ModuleController with Answer with Log {
         if (!hook.acceptable) { Ok }
         else {
           Api !! SlackMapper.to.message(hook)
-          hook.command.map(broadcastCommand)
+          SlackMapper.to.command(hook).map {
+            c => Api !! c
+          }
           Ok
         }
       }
