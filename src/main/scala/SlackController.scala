@@ -23,6 +23,7 @@ object SlackController extends ModuleController with Answer with Log {
 
   def applyRoute[RH <: RequestHeader, H >: Handler](rh: RH, default: RH ⇒ H) =
     (rh.method, rh.path.drop(path.length)) match {
+      case ("GET", "/debug")      ⇒ debug(rh.getQueryString("org"))
       case ("POST", "/outgoings") ⇒ handleOutgoing
       case ("POST", "/commands")  ⇒ handleCommand
       case _                      ⇒ default(rh)
@@ -111,5 +112,19 @@ object SlackController extends ModuleController with Answer with Log {
         else broadcastCommand(command)
       }
     )
+  }
+
+  def debug(org: Option[String]) = Action.async {
+    Api.connector.read[SlackConfig](SlackProvider, org.map(Api.organizations.from(_))).map { confOpt =>
+      val attrs = confOpt.map { config =>
+        Map(
+          "Tokens out size" -> config.outgoingTokens.size.toString,
+          "Tokens in size" -> config.incomingTokens.size.toString
+        )
+      }
+      .getOrElse(Map.empty[String, String])
+
+      Ok(io.yard.html.debug(attrs))
+    }
   }
 }
